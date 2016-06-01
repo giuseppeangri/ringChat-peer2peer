@@ -6,6 +6,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Peer {
 
@@ -18,6 +21,8 @@ public class Peer {
 
     private InetAddress successor;
     private InetAddress predecessor;
+    
+    private Map<InetAddress, String> peers = new HashMap<InetAddress, String>();
 
     public Peer(InetAddress myAddress, int myPort, String myName) {
         super();
@@ -57,8 +62,16 @@ public class Peer {
     public void setPredecessor(InetAddress predecessor) {
         this.predecessor = predecessor;
     }
+    
+	public Map<InetAddress, String> getPeers() {
+		return peers;
+	}
 
-    public void startListening() {
+	public void setPeers(Map<InetAddress, String> peers) {
+		this.peers = peers;
+	}
+
+	public void startListening() {
 
         try {
             this.serverSocket = new ServerSocket(this.myPort);
@@ -99,7 +112,7 @@ public class Peer {
 
             case RingProtocol.JOIN: {
 
-                System.out.println("I PROCESS A JOIN");
+                System.out.println("I PROCESS A JOIN FROM " +source.getHostAddress() +":" +port);
 
                 this.setSuccessor(source);
 
@@ -120,7 +133,7 @@ public class Peer {
 
             case RingProtocol.JOIN_RESPONSE: {
 
-                System.out.println("I PROCESS A JOIN_RESPONSE");
+                System.out.println("I PROCESS A JOIN_RESPONSE FROM " +source.getHostAddress() +":" +port);
 
                 this.setPredecessor(source);
 
@@ -130,12 +143,18 @@ public class Peer {
 
                 Message msg = new Message(RingProtocol.SET_PREDECESSOR, this.myAddress);
                 sendMessage(msg, joinSuccessor, port);
+                
+                SimpleEntry<InetAddress, String> me = new SimpleEntry<InetAddress, String>(this.myAddress, this.myName);    
+                msg = new Message(RingProtocol.NEW_PEER, me);
+                sendMessage(msg, this.successor, port);
 
                 break;
 
             }
 
             case RingProtocol.SET_PREDECESSOR: {
+            	
+                System.out.println("I PROCESS A SET_PREDECESSOR FROM " +source.getHostAddress() +":" +port);
 
                 InetAddress predecessor = (InetAddress) message.getContent();
                 this.setPredecessor(predecessor);
@@ -147,15 +166,65 @@ public class Peer {
             case RingProtocol.TEXT: {
 
                 if(message.getRecipient() == this.myAddress) {
+                    System.out.println("I PROCESS A TEXT FROM " +source.getHostAddress() +":" +port);
                     String string = (String) message.getContent();
                     System.out.println(string);
                 }
                 else {
+                    System.out.println("I FORWARD A TEXT FROM " +source.getHostAddress() +":" +port);
                     sendMessage(message, this.successor, port);
                 }
 
                 break;
 
+            }
+            
+            case RingProtocol.NEW_PEER: {
+            	
+                System.out.println("I PROCESS A NEW_PEER FROM " +source.getHostAddress() +":" +port);
+            	
+            	SimpleEntry<InetAddress, String> newPeer = (SimpleEntry<InetAddress, String>) message.getContent();
+            	
+            	// se il nuovo peer non sono io stesso
+            	if(newPeer.getKey() != this.myAddress) {
+            		
+                    System.out.println("NEW PEER: " +newPeer.getKey().getHostAddress() +" - " +newPeer.getValue());
+            		
+            		// aggiungo il nuovo peer alla HashMap
+            		this.peers.put(newPeer.getKey(), newPeer.getValue());
+            		
+            		// rispondo al nuovo peer inviando i miei dati
+                    SimpleEntry<InetAddress, String> me = new SimpleEntry<InetAddress, String>(this.myAddress, this.myName);    
+            		Message msg = new Message(RingProtocol.NEW_PEER_RESPONSE, me, newPeer.getKey());
+            		sendMessage(msg, this.successor, port);
+            		
+            		// inoltro l'avviso di NEW_PEER al resto dell'anello
+            		msg = new Message(RingProtocol.NEW_PEER, newPeer);
+            		sendMessage(msg, this.successor, port);
+            		
+            	}
+            	
+            	break;
+            	
+            }
+            
+            case RingProtocol.NEW_PEER_RESPONSE: {
+            	
+                System.out.println("I PROCESS A NEW_PEER_RESPONSE FROM " +source.getHostAddress() +":" +port);
+            	
+            	if(message.getRecipient() == this.myAddress) {
+            		
+                	SimpleEntry<InetAddress, String> newPeer = (SimpleEntry<InetAddress, String>) message.getContent();
+                	
+                    System.out.println("NEW PEER: " +newPeer.getKey().getHostAddress() +" - " +newPeer.getValue());
+                	
+                	// aggiungo il nuovo peer alla HashMap
+            		this.peers.put(newPeer.getKey(), newPeer.getValue());
+                	
+            	}
+            	
+            	break;
+            	
             }
 
         }
@@ -163,10 +232,8 @@ public class Peer {
     }
 
     public void join(InetAddress address, int port) {
-        System.out.println("join");
-        Message joinMessage = new Message(RingProtocol.JOIN, "join request");
+    	Message joinMessage = new Message(RingProtocol.JOIN, "join request");
         sendMessage(joinMessage, address, port);
-
     }
 
     public void sendMessage(Message message, InetAddress destAddress, int destPort) {
