@@ -1,7 +1,7 @@
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class MainP2 {
+public class Main {
 
 	public static void main(String[] args) {
 
@@ -13,22 +13,23 @@ public class MainP2 {
 			e.printStackTrace();
 		}
 		
-		int port1 = 8090;
-
-		String name2 = "P2";
-		Peer peer2 = new Peer(localhost, port1, name2);
-		peer2.startListening();
-		
-		InetAddress gigi = null;		
+		InetAddress address = null;		
 		try {
-			gigi = InetAddress.getByName("172.19.35.146");
+			address = InetAddress.getByName("192.168.169.1301");
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		int port = 8090;
+
+		String name = "Mac OS X";
 		
-		peer2.join(gigi, port1);
+		Peer peer = new Peer(localhost, port, name);
+		
+		peer.startListening();
+
+		peer.join(address, port);
 	
 //		Message m = new Message(RingProtocol.TEXT, "Ciao");
 //		peer2.sendMessage(m, peer2.getSuccessor(), port1);
