@@ -114,8 +114,6 @@ public class Peer {
 
                 System.out.println("I PROCESS A JOIN FROM " +source.getHostAddress() +":" +port);
 
-                this.setSuccessor(source);
-
                 InetAddress address;
 
                 if (this.getSuccessor() == null) {
@@ -123,6 +121,8 @@ public class Peer {
                 } else {
                     address = this.getSuccessor();
                 }
+                
+                this.setSuccessor(source);
 
                 Message msg = new Message(RingProtocol.JOIN_RESPONSE, address);
                 sendMessage(msg, source, port);
