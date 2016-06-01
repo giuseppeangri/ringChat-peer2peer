@@ -165,7 +165,7 @@ public class Peer {
 
             case RingProtocol.TEXT: {
 
-                if(message.getRecipient() == this.myAddress) {
+                if( message.getRecipient().equals(this.myAddress) ) {
                     System.out.println("I PROCESS A TEXT FROM " +source.getHostAddress() +":" +port);
                     String string = (String) message.getContent();
                     System.out.println(string);
@@ -186,7 +186,7 @@ public class Peer {
             	SimpleEntry<InetAddress, String> newPeer = (SimpleEntry<InetAddress, String>) message.getContent();
             	
             	// se il nuovo peer non sono io stesso
-            	if(newPeer.getKey() != this.myAddress) {
+            	if( !newPeer.getKey().equals(this.myAddress) ) {
             		
                     System.out.println("NEW PEER: " +newPeer.getKey().getHostAddress() +" - " +newPeer.getValue());
             		
@@ -212,7 +212,7 @@ public class Peer {
             	
                 System.out.println("I PROCESS A NEW_PEER_RESPONSE FROM " +source.getHostAddress() +":" +port);
             	
-            	if(message.getRecipient() == this.myAddress) {
+            	if( message.getRecipient().equals(this.myAddress) ) {
             		
                 	SimpleEntry<InetAddress, String> newPeer = (SimpleEntry<InetAddress, String>) message.getContent();
                 	
